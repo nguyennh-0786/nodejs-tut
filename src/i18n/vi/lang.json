@@ -1,3 +1,4 @@
 {
-    "hello_world": "Xin chào Thế giới"
+    "hello_world": "Xin chào Thế giới",
+    "create_user_success": "Người dùng {username} đã được tạo thành công!"
 }
