@@ -1,9 +1,12 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { ApiHeader, ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiHeader, ApiOperation } from '@nestjs/swagger';
 import { I18nContext } from 'nestjs-i18n/dist/i18n.context';
 import { I18n } from 'nestjs-i18n/dist/decorators/i18n.decorator';
 import { CreateUserDto } from './create-user.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { BaseResponse } from 'src/common/base.response';
+import { User } from './users.entity';
 
 @Controller('api/users')
 export class UsersController {
@@ -20,10 +23,21 @@ export class UsersController {
   async create(
     @Body() body: CreateUserDto,
     @I18n() i18n: I18nContext,
-  ): Promise<string> {
-    const user = await this.usersService.createUser(body);
-    return await i18n.t('lang.create_user_success', {
-      args: { username: user.username },
-    });
+  ): Promise<BaseResponse<User | null>> {
+    return await this.usersService.createUser(body, i18n);
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  @ApiOperation({ summary: 'Get all users' })
+  @ApiHeader({
+    name: 'Accept-Language',
+    description:
+      'Language code (e.g., en, vi) to specify the language for the response',
+    required: false,
+  })
+  async findAll(@I18n() i18n: I18nContext): Promise<BaseResponse<User[]>> {
+    return await this.usersService.findAllUsers(i18n);
   }
 }

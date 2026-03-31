@@ -5,8 +5,8 @@ import { AcceptLanguageResolver, I18nModule, QueryResolver } from 'nestjs-i18n';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from './config/data-source';
-import { User } from './users/users.entity';
 import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -27,10 +27,10 @@ import { UsersModule } from './users/users.module';
       isGlobal: true,
     }),
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     TypeOrmModule.forRoot(dataSourceOptions),
 
     UsersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
