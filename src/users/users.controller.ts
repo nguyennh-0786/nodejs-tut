@@ -4,7 +4,6 @@ import { ApiBearerAuth, ApiHeader, ApiOperation } from '@nestjs/swagger';
 import { CreateUserDto } from './create-user.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { BaseResponse } from 'src/common/base.response';
-import { User } from './users.entity';
 
 @Controller('api/users')
 export class UsersController {
@@ -20,7 +19,7 @@ export class UsersController {
   })
   async create(
     @Body() body: CreateUserDto,
-  ): Promise<BaseResponse<User | null>> {
+  ): Promise<BaseResponse<Record<string, any>>> {
     return await this.usersService.createUser(body);
   }
 
@@ -34,7 +33,7 @@ export class UsersController {
       'Language code (e.g., en, vi) to specify the language for the response',
     required: false,
   })
-  async findAll(): Promise<BaseResponse<User[]>> {
+  async findAll(): Promise<BaseResponse<Record<string, any>[]>> {
     return await this.usersService.findAllUsers();
   }
 }

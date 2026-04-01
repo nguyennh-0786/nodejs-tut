@@ -1,11 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './users.entity';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './create-user.dto';
 import { BaseResponse } from 'src/common/base.response';
 import * as bcrypt from 'bcrypt';
-import { I18nService } from 'nestjs-i18n/dist/services/i18n.service';
+import { I18nService } from 'nestjs-i18n';
+import { t } from 'src/shared/utils';
+import { UserSerializer } from './serializers/user.serializer';
 
 @Injectable()
 export class UsersService {
@@ -15,17 +22,16 @@ export class UsersService {
     private readonly i18nService: I18nService,
   ) {}
 
-  private async t(
-    key: string,
-    args?: Record<string, unknown>,
-  ): Promise<string> {
-    return this.i18nService.t(key, { args });
-  }
-
-  async createUser(value: CreateUserDto): Promise<BaseResponse<User | null>> {
-    const existingUser = await this.findUserByEmailOrThrow(value.email);
+  async createUser(
+    value: CreateUserDto,
+  ): Promise<BaseResponse<Record<string, any>>> {
+    const existingUser = await this.userRepository.findOneBy({
+      email: value.email,
+    });
     if (existingUser) {
-      return new BaseResponse(400, await this.t('lang.email_exists'), null);
+      throw new BadRequestException(
+        await t(this.i18nService, 'lang.email_exists'),
+      );
     }
 
     try {
@@ -36,42 +42,47 @@ export class UsersService {
       });
       await this.userRepository.save(newUser);
       return new BaseResponse(
-        200,
-        await this.t('lang.create_user_success', {
+        await t(this.i18nService, 'lang.create_user_success', {
           username: newUser.username,
         }),
-        newUser,
+        new UserSerializer(newUser, { type: 'BASIC_INFO' }).serialize(),
       );
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
-      return new BaseResponse(
-        400,
-        await this.t('lang.failed_to_create_user'),
-        null,
+      throw new InternalServerErrorException(
+        await t(this.i18nService, 'lang.failed_to_create_user'),
       );
     }
   }
 
-  async findUserByEmail(email: string): Promise<BaseResponse<User | null>> {
+  async findUserByEmail(
+    email: string,
+  ): Promise<BaseResponse<Record<string, any> | null>> {
+    const user = await this.findUserByEmailOrThrow(email);
+    return new BaseResponse(
+      await t(this.i18nService, 'lang.get_users_success'),
+      new UserSerializer(user, { type: 'BASIC_INFO' }).serialize(),
+    );
+  }
+
+  async findAllUsers(): Promise<BaseResponse<Record<string, any>[]>> {
+    const users = await this.userRepository.find();
+    const serializedUsers = users.map((user) =>
+      new UserSerializer(user, { type: 'BASIC_INFO' }).serialize(),
+    );
+    return new BaseResponse(
+      await t(this.i18nService, 'lang.get_users_success'),
+      serializedUsers,
+    );
+  }
+
+  async findUserByEmailOrThrow(email: string): Promise<User> {
     const user = await this.userRepository.findOneBy({ email });
-    return new BaseResponse(
-      200,
-      await (user
-        ? this.i18nService.t('lang.get_users_success')
-        : this.i18nService.t('lang.user_not_found')),
-      user,
-    );
-  }
-
-  async findAllUsers(): Promise<BaseResponse<User[]>> {
-    return new BaseResponse(
-      200,
-      await this.i18nService.t('lang.get_users_success'),
-      await this.userRepository.find(),
-    );
-  }
-
-  findUserByEmailOrThrow(email: string): Promise<User | null> {
-    return this.userRepository.findOneBy({ email });
+    if (!user) {
+      throw new NotFoundException(
+        await t(this.i18nService, 'lang.user_not_found'),
+      );
+    }
+    return user;
   }
 }

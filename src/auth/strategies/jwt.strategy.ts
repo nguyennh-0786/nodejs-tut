@@ -6,14 +6,18 @@ import 'dotenv/config';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
+    const jwtSecret = process.env.JWT_SECRET_KEY;
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET_KEY environment variable is not set');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET_KEY || '',
+      secretOrKey: jwtSecret,
     });
   }
 
-  validate(payload: { email: string }) {
-    return { username: payload.email };
+  validate(payload: { email: string; id: number }) {
+    return { email: payload.email, id: payload.id };
   }
 }
