@@ -1,3 +1,10 @@
 {
-    "hello_world": "Xin chào Thế giới"
+    "hello_world": "Xin chào Thế giới!",
+    "create_user_success": "Người dùng {username} đã được tạo thành công!",
+    "email_exists": "Email đã tồn tại",
+    "failed_to_create_user": "Tạo người dùng thất bại",
+    "get_users_success": "Lấy người dùng thành công",
+    "user_not_found": "Không tìm thấy người dùng",
+    "invalid_credentials": "Thông tin đăng nhập không hợp lệ",
+    "sign_in_success": "Đăng nhập thành công"
 }

@@ -2,6 +2,11 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AcceptLanguageResolver, I18nModule, QueryResolver } from 'nestjs-i18n';
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { dataSourceOptions } from './config/data-source';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -18,6 +23,14 @@ import { AcceptLanguageResolver, I18nModule, QueryResolver } from 'nestjs-i18n';
         AcceptLanguageResolver,
       ],
     }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+
+    TypeOrmModule.forRoot(dataSourceOptions),
+
+    UsersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

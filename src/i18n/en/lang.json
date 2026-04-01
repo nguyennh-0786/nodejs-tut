@@ -1,3 +1,10 @@
 {
-    "hello_world": "Hello World"
+    "hello_world": "Hello World!",
+    "create_user_success": "User {username} created successfully!",
+    "email_exists": "Email already exists",
+    "failed_to_create_user": "Failed to create user",
+    "get_users_success": "Users retrieved successfully",
+    "user_not_found": "User not found",
+    "invalid_credentials": "Invalid credentials",
+    "sign_in_success": "Sign in successful"
 }
