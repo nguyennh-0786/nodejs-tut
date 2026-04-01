@@ -1,7 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
 import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { I18n, I18nContext } from 'nestjs-i18n';
+import { AppService } from './app.service';
 
 @ApiTags('Hello')
 @Controller()
@@ -16,7 +15,7 @@ export class AppController {
       'Language code (e.g., en, vi) to specify the language for the response',
     required: false,
   })
-  async getHello(@I18n() i18n: I18nContext): Promise<string> {
-    return await i18n.t('lang.hello_world');
+  async getHello(): Promise<string> {
+    return await this.appService.getHello();
   }
 }
