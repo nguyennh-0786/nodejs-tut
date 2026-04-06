@@ -5,6 +5,8 @@ import { BaseResponse } from 'src/common/base.response';
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt';
 import { t } from 'src/shared/utils';
+import { User } from 'src/users/users.entity';
+import { UserSerializer } from 'src/users/serializers/user.serializer';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +19,7 @@ export class AuthService {
   async login(
     email: string,
     password: string,
-  ): Promise<BaseResponse<{ accessToken: string } | null>> {
+  ): Promise<BaseResponse<User | null>> {
     const user = await this.usersService.findUserByEmailOrThrow(email);
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
@@ -27,8 +29,12 @@ export class AuthService {
     }
     const payload = { email: user.email, id: user.id };
     const accessToken = this.jwtService.sign(payload);
+    const formattedUser = new UserSerializer(user, {
+      type: 'BASIC_INFO',
+    }).serialize();
     return new BaseResponse(await t(this.i18nService, 'lang.sign_in_success'), {
-      accessToken: accessToken,
-    });
+      ...formattedUser,
+      token: accessToken,
+    } as User);
   }
 }

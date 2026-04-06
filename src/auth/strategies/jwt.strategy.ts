@@ -3,7 +3,6 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 import 'dotenv/config';
 import { UsersService } from 'src/users/users.service';
-import { log } from 'util';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -20,7 +19,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: { id: number; email: string }) {
-    const user = await this.usersService.findUserByIdOrThrow(payload.id);
-    return user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...sanitizedUser } =
+      await this.usersService.findUserByIdOrThrow(payload.id);
+    return sanitizedUser;
   }
 }

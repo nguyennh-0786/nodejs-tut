@@ -101,7 +101,17 @@ export class UsersService {
     updateData: Partial<User>,
   ): Promise<BaseResponse<Record<string, any>>> {
     const user = await this.findUserByIdOrThrow(id);
-    Object.assign(user, updateData);
+    const allowedUpdateFields = ['username', 'bio', 'image'];
+    const sanitizedUpdateData = Object.entries(updateData).reduce(
+      (acc, [key, value]) => {
+        if (allowedUpdateFields.includes(key)) {
+          (acc as Record<string, unknown>)[key] = value;
+        }
+        return acc;
+      },
+      {} as Partial<User>,
+    );
+    Object.assign(user, sanitizedUpdateData);
     try {
       await this.userRepository.save(user);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

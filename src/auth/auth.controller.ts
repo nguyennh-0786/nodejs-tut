@@ -3,6 +3,7 @@ import { LogInDto } from './log-in.dto';
 import { AuthService } from './auth.service';
 import { ApiHeader, ApiOperation } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/base.response';
+import { User } from 'src/users/users.entity';
 
 @Controller('api/users')
 export class AuthController {
@@ -16,9 +17,7 @@ export class AuthController {
       'Language code (e.g., en, vi) to specify the language for the response',
     required: false,
   })
-  async login(
-    @Body() logInDto: LogInDto,
-  ): Promise<BaseResponse<{ accessToken: string } | null>> {
+  async login(@Body() logInDto: LogInDto): Promise<BaseResponse<User | null>> {
     const { email, password } = logInDto;
     return await this.authService.login(email, password);
   }
