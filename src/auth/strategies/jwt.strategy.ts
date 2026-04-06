@@ -2,10 +2,12 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 import 'dotenv/config';
+import { UsersService } from 'src/users/users.service';
+import { log } from 'util';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(private readonly usersService: UsersService) {
     const jwtSecret = process.env.JWT_SECRET_KEY;
     if (!jwtSecret) {
       throw new Error('JWT_SECRET_KEY environment variable is not set');
@@ -17,7 +19,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: { email: string; id: number }) {
-    return { email: payload.email, id: payload.id };
+  async validate(payload: { id: number; email: string }) {
+    const user = await this.usersService.findUserByIdOrThrow(payload.id);
+    return user;
   }
 }

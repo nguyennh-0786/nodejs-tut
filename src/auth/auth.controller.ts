@@ -1,25 +1,25 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { SignInDto } from './sign-in.dto';
+import { LogInDto } from './log-in.dto';
 import { AuthService } from './auth.service';
 import { ApiHeader, ApiOperation } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/base.response';
 
-@Controller('api/auth')
+@Controller('api/users')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Post('sign-in')
-  @ApiOperation({ summary: 'Sign in a user' })
+  @Post('login')
+  @ApiOperation({ summary: 'Log in a user' })
   @ApiHeader({
     name: 'Accept-Language',
     description:
       'Language code (e.g., en, vi) to specify the language for the response',
     required: false,
   })
-  async signin(
-    @Body() signInDto: SignInDto,
+  async login(
+    @Body() logInDto: LogInDto,
   ): Promise<BaseResponse<{ accessToken: string } | null>> {
-    const { email, password } = signInDto;
-    return await this.authService.signIn(email, password);
+    const { email, password } = logInDto;
+    return await this.authService.login(email, password);
   }
 }

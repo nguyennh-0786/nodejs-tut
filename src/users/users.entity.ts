@@ -13,4 +13,10 @@ export class User {
 
   @Column()
   password: string;
+
+  @Column({ nullable: true })
+  bio: string;
+
+  @Column({ nullable: true })
+  image: string;
 }

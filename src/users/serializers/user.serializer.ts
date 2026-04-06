@@ -1,10 +1,11 @@
 export type UserSerializerType = 'BASIC_INFO';
 
 const USER_FIELDS: Record<UserSerializerType, string[]> = {
-  BASIC_INFO: ['id', 'email', 'username'],
+  BASIC_INFO: ['id', 'email', 'username', 'bio', 'image'],
 };
 
 export class UserSerializer {
+  [x: string]: any;
   constructor(
     private readonly user: Record<string, any>,
     private readonly options: { type: UserSerializerType },

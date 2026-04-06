@@ -14,7 +14,7 @@ export class AuthService {
     private readonly i18nService: I18nService,
   ) {}
 
-  async signIn(
+  async login(
     email: string,
     password: string,
   ): Promise<BaseResponse<{ accessToken: string } | null>> {
