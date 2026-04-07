@@ -101,17 +101,7 @@ export class UsersService {
     updateData: Partial<User>,
   ): Promise<BaseResponse<Record<string, any>>> {
     const user = await this.findUserByIdOrThrow(id);
-    const allowedUpdateFields = ['username', 'bio', 'image'];
-    const sanitizedUpdateData = Object.entries(updateData).reduce(
-      (acc, [key, value]) => {
-        if (allowedUpdateFields.includes(key)) {
-          (acc as Record<string, unknown>)[key] = value;
-        }
-        return acc;
-      },
-      {} as Partial<User>,
-    );
-    Object.assign(user, sanitizedUpdateData);
+    Object.assign(user, updateData);
     try {
       await this.userRepository.save(user);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -125,6 +115,35 @@ export class UsersService {
         username: user.username,
       }),
       new UserSerializer(user, { type: 'BASIC_INFO' }).serialize(),
+    );
+  }
+
+  async getUserProfile(
+    username: string,
+    currentUser: User,
+  ): Promise<BaseResponse<Record<string, any>>> {
+    const user = await this.userRepository.findOneBy({ username });
+    if (!user) {
+      throw new NotFoundException(
+        await t(this.i18nService, 'lang.user_not_found'),
+      );
+    }
+    const following = await this.userRepository.manager
+      .createQueryBuilder()
+      .from('followUser', 'f')
+      .where('f.username = :currentUsername', {
+        currentUsername: currentUser.username,
+      })
+      .andWhere('f.usernameFollow = :targetUsername', {
+        targetUsername: user.username,
+      })
+      .getExists();
+    return new BaseResponse(
+      await t(this.i18nService, 'lang.get_user_success'),
+      {
+        ...new UserSerializer(user, { type: 'PROFILE' }).serialize(),
+        following,
+      },
     );
   }
 }

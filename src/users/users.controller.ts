@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Put, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiBearerAuth, ApiHeader, ApiOperation } from '@nestjs/swagger';
 import { RegisterUserDto } from './dto/register-user.dto';
@@ -9,16 +18,16 @@ import { UserSerializer } from './serializers/user.serializer';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './users.entity';
 import { t } from 'src/shared/utils';
-import { I18nService } from 'nestjs-i18n/dist/services/i18n.service';
+import { I18nService } from 'nestjs-i18n';
 
-@Controller('api/users')
+@Controller('api/')
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly i18nService: I18nService,
   ) {}
 
-  @Post()
+  @Post('users')
   @ApiOperation({ summary: 'Register a new user' })
   @ApiHeader({
     name: 'Accept-Language',
@@ -34,7 +43,7 @@ export class UsersController {
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
-  @Get('all')
+  @Get('users/all')
   @ApiOperation({ summary: 'Get all users' })
   @ApiHeader({
     name: 'Accept-Language',
@@ -48,7 +57,7 @@ export class UsersController {
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
-  @Get('me')
+  @Get('users/me')
   @ApiOperation({ summary: 'Get current user' })
   @ApiHeader({
     name: 'Accept-Language',
@@ -59,7 +68,7 @@ export class UsersController {
   async getCurrentUser(@CurrentUser() user: User) {
     if (!user) {
       throw new UnauthorizedException(
-        await t(this.i18nService, 'lang.unauthorized'),
+        await t(this.i18nService, 'lang.user_not_found'),
       );
     }
     return new BaseResponse(
@@ -70,7 +79,7 @@ export class UsersController {
 
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
-  @Put()
+  @Put('users')
   @ApiOperation({ summary: 'Update current user' })
   @ApiHeader({
     name: 'Accept-Language',
@@ -84,10 +93,33 @@ export class UsersController {
   ) {
     if (!user) {
       throw new UnauthorizedException(
-        await t(this.i18nService, 'lang.unauthorized'),
+        await t(this.i18nService, 'lang.user_not_found'),
       );
     }
     const updatedUser = await this.usersService.updateUser(user.id, body);
     return updatedUser;
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
+  @Get('profiles/:username')
+  @ApiOperation({ summary: 'Get profile of user' })
+  @ApiHeader({
+    name: 'Accept-Language',
+    description:
+      'Language code (e.g., en, vi) to specify the language for the response',
+    required: false,
+  })
+  async getUserProfile(
+    @CurrentUser() user: User,
+    @Param('username') username: string,
+  ) {
+    if (!user) {
+      throw new UnauthorizedException(
+        await t(this.i18nService, 'lang.user_not_found'),
+      );
+    }
+    const userProfile = await this.usersService.getUserProfile(username, user);
+    return userProfile;
   }
 }
