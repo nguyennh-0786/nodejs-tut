@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -119,7 +120,62 @@ export class UsersController {
         await t(this.i18nService, 'lang.user_not_found'),
       );
     }
-    const userProfile = await this.usersService.getUserProfile(username, user);
+    const userProfile = await this.usersService.getUserProfile(
+      user.username,
+      username,
+    );
+    return userProfile;
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
+  @Post('profiles/:username/follow')
+  @ApiOperation({ summary: 'Follow a user' })
+  @ApiHeader({
+    name: 'Accept-Language',
+    description:
+      'Language code (e.g., en, vi) to specify the language for the response',
+    required: false,
+  })
+  async followUser(
+    @CurrentUser() user: User,
+    @Param('username') usernameFollow: string,
+  ) {
+    if (!user) {
+      throw new UnauthorizedException(
+        await t(this.i18nService, 'lang.user_not_found'),
+      );
+    }
+    const userProfile = await this.usersService.followUser(
+      user.username,
+      usernameFollow,
+    );
+    return userProfile;
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
+  @Delete('profiles/:username/follow')
+  @ApiOperation({ summary: 'Unfollow a user' })
+  @ApiHeader({
+    name: 'Accept-Language',
+    description:
+      'Language code (e.g., en, vi) to specify the language for the response',
+    required: false,
+  })
+  async unfollowUser(
+    @CurrentUser() user: User,
+    @Param('username') usernameFollow: string,
+  ) {
+    if (!user) {
+      throw new UnauthorizedException(
+        await t(this.i18nService, 'lang.user_not_found'),
+      );
+    }
+    const userProfile = await this.usersService.unfollowUser(
+      user.username,
+      usernameFollow,
+    );
     return userProfile;
   }
 }

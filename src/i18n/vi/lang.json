@@ -9,5 +9,11 @@
     "sign_in_success": "Đăng nhập thành công",
     "get_user_success": "Lấy người dùng thành công",
     "failed_to_update_user": "Cập nhật người dùng thất bại",
-    "update_user_success": "Cập nhật người dùng thành công"
+    "update_user_success": "Cập nhật người dùng thành công",
+    "already_following_user": "Đang theo dõi người dùng này",
+    "not_following_user": "Không theo dõi người dùng này",
+    "failed_to_follow_user": "Theo dõi người dùng thất bại",
+    "follow_user_success": "Theo dõi người dùng thành công",
+    "unfollow_user_success": "Hủy theo dõi người dùng thành công",
+    "failed_to_unfollow_user": "Hủy theo dõi người dùng thất bại"
 }

@@ -9,5 +9,11 @@
     "sign_in_success": "Sign in successful",
     "get_user_success": "User retrieved successfully",
     "failed_to_update_user": "Failed to update user",
-    "update_user_success": "User updated successfully"
+    "update_user_success": "User updated successfully",
+    "already_following_user": "Already following this user",
+    "not_following_user": "Not following this user",
+    "failed_to_follow_user": "Failed to follow user",
+    "follow_user_success": "User followed successfully",
+    "unfollow_user_success": "User unfollowed successfully",
+    "failed_to_unfollow_user": "Failed to unfollow user"
 }
