@@ -6,5 +6,8 @@
     "get_users_success": "Lấy người dùng thành công",
     "user_not_found": "Không tìm thấy người dùng",
     "invalid_credentials": "Thông tin đăng nhập không hợp lệ",
-    "sign_in_success": "Đăng nhập thành công"
+    "sign_in_success": "Đăng nhập thành công",
+    "get_user_success": "Lấy người dùng thành công",
+    "failed_to_update_user": "Cập nhật người dùng thất bại",
+    "update_user_success": "Cập nhật người dùng thành công"
 }

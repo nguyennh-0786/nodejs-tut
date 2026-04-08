@@ -6,5 +6,8 @@
     "get_users_success": "Users retrieved successfully",
     "user_not_found": "User not found",
     "invalid_credentials": "Invalid credentials",
-    "sign_in_success": "Sign in successful"
+    "sign_in_success": "Sign in successful",
+    "get_user_success": "User retrieved successfully",
+    "failed_to_update_user": "Failed to update user",
+    "update_user_success": "User updated successfully"
 }
