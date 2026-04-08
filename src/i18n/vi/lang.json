@@ -15,5 +15,7 @@
     "failed_to_follow_user": "Theo dõi người dùng thất bại",
     "follow_user_success": "Theo dõi người dùng thành công",
     "unfollow_user_success": "Hủy theo dõi người dùng thành công",
-    "failed_to_unfollow_user": "Hủy theo dõi người dùng thất bại"
+    "failed_to_unfollow_user": "Hủy theo dõi người dùng thất bại",
+    "cannot_follow_yourself": "Không thể theo dõi chính mình",
+    "cannot_unfollow_yourself": "Không thể hủy theo dõi chính mình"
 }

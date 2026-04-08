@@ -96,7 +96,7 @@ export class UsersService {
     return user;
   }
 
-  async saveUserOrThrow(user: User) {
+  async saveUserOrThrow(user: User): Promise<void> {
     try {
       await this.userRepository.save(user);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -125,8 +125,7 @@ export class UsersService {
   async checkUserFollowStatusOrThrow(
     currentUsername: string,
     usernameFollow: string,
-    isFollowFlow = false,
-    isUnFollowFlow = false,
+    profileFlow: PROFILE_FLOWS = 'PROFILE',
   ): Promise<[boolean, User, User]> {
     const currentUser = await this.userRepository.findOne({
       where: { username: currentUsername },
@@ -142,16 +141,23 @@ export class UsersService {
       );
     }
 
-    const following = currentUser.following.some(
-      (user) => user.username === userFollow?.username,
-    );
+    const following = await this.userRepository.manager
+      .createQueryBuilder()
+      .from('followUser', 'f')
+      .where('f.username = :currentUsername', {
+        currentUsername: currentUser.username,
+      })
+      .andWhere('f.usernameFollow = :targetUsername', {
+        targetUsername: userFollow.username,
+      })
+      .getExists();
 
-    if (isFollowFlow && following) {
+    if (profileFlow === 'FOLLOW' && following) {
       throw new BadRequestException(
         await t(this.i18nService, 'lang.already_following_user'),
       );
     }
-    if (isUnFollowFlow && !following) {
+    if (profileFlow === 'UNFOLLOW' && !following) {
       throw new NotFoundException(
         await t(this.i18nService, 'lang.not_following_user'),
       );
@@ -185,7 +191,7 @@ export class UsersService {
       await this.checkUserFollowStatusOrThrow(
         currentUsername,
         usernameFollow,
-        true,
+        'FOLLOW',
       );
 
     if (following) {
@@ -223,8 +229,7 @@ export class UsersService {
       await this.checkUserFollowStatusOrThrow(
         currentUsername,
         usernameFollow,
-        false,
-        true,
+        'UNFOLLOW',
       );
 
     if (!following) {
@@ -254,3 +259,5 @@ export class UsersService {
     );
   }
 }
+
+export type PROFILE_FLOWS = 'PROFILE' | 'FOLLOW' | 'UNFOLLOW';

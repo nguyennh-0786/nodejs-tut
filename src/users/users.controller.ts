@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -146,6 +147,13 @@ export class UsersController {
         await t(this.i18nService, 'lang.user_not_found'),
       );
     }
+
+    if (user.username === usernameFollow) {
+      throw new BadRequestException(
+        await t(this.i18nService, 'lang.cannot_follow_yourself'),
+      );
+    }
+
     const userProfile = await this.usersService.followUser(
       user.username,
       usernameFollow,
@@ -172,6 +180,13 @@ export class UsersController {
         await t(this.i18nService, 'lang.user_not_found'),
       );
     }
+
+    if (user.username === usernameFollow) {
+      throw new BadRequestException(
+        await t(this.i18nService, 'lang.cannot_unfollow_yourself'),
+      );
+    }
+
     const userProfile = await this.usersService.unfollowUser(
       user.username,
       usernameFollow,

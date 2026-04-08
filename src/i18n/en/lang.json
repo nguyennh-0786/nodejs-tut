@@ -15,5 +15,7 @@
     "failed_to_follow_user": "Failed to follow user",
     "follow_user_success": "User followed successfully",
     "unfollow_user_success": "User unfollowed successfully",
-    "failed_to_unfollow_user": "Failed to unfollow user"
+    "failed_to_unfollow_user": "Failed to unfollow user",
+    "cannot_follow_yourself": "You cannot follow yourself",
+    "cannot_unfollow_yourself": "You cannot unfollow yourself"
 }
