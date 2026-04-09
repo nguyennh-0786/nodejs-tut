@@ -96,12 +96,7 @@ export class UsersService {
     return user;
   }
 
-  async updateUser(
-    id: number,
-    updateData: Partial<User>,
-  ): Promise<BaseResponse<Record<string, any>>> {
-    const user = await this.findUserByIdOrThrow(id);
-    Object.assign(user, updateData);
+  async saveUserOrThrow(user: User): Promise<void> {
     try {
       await this.userRepository.save(user);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -110,6 +105,15 @@ export class UsersService {
         await t(this.i18nService, 'lang.failed_to_update_user'),
       );
     }
+  }
+
+  async updateUser(
+    id: number,
+    updateData: Partial<User>,
+  ): Promise<BaseResponse<Record<string, any>>> {
+    const user = await this.findUserByIdOrThrow(id);
+    Object.assign(user, updateData);
+    await this.saveUserOrThrow(user);
     return new BaseResponse(
       await t(this.i18nService, 'lang.update_user_success', {
         username: user.username,
@@ -118,32 +122,156 @@ export class UsersService {
     );
   }
 
-  async getUserProfile(
-    username: string,
-    currentUser: User,
-  ): Promise<BaseResponse<Record<string, any>>> {
-    const user = await this.userRepository.findOneBy({ username });
-    if (!user) {
+  async checkUserFollowStatusOrThrow(
+    currentUserId: number,
+    usernameFollow: string,
+    profileFlow: PROFILE_FLOWS = 'PROFILE',
+  ): Promise<[boolean, User, User]> {
+    const currentUser = await this.userRepository.findOne({
+      where: { id: currentUserId },
+      relations: ['following'],
+    });
+    const userFollow = await this.userRepository.findOne({
+      where: { username: usernameFollow },
+    });
+
+    if (!currentUser || !userFollow) {
       throw new NotFoundException(
         await t(this.i18nService, 'lang.user_not_found'),
       );
     }
+
     const following = await this.userRepository.manager
       .createQueryBuilder()
       .from('followUser', 'f')
-      .where('f.username = :currentUsername', {
-        currentUsername: currentUser.username,
+      .where('f.userId = :currentUserId', {
+        currentUserId: currentUser.id,
       })
-      .andWhere('f.usernameFollow = :targetUsername', {
-        targetUsername: user.username,
+      .andWhere('f.followUserId = :targetUserId', {
+        targetUserId: userFollow.id,
       })
       .getExists();
+
+    if (profileFlow === 'FOLLOW' && following) {
+      throw new BadRequestException(
+        await t(this.i18nService, 'lang.already_following_user'),
+      );
+    }
+    if (profileFlow === 'UNFOLLOW' && !following) {
+      throw new NotFoundException(
+        await t(this.i18nService, 'lang.not_following_user'),
+      );
+    }
+    return [following, currentUser, userFollow];
+  }
+
+  async getUserProfile(
+    currentUserId: number,
+    usernameFollow: string,
+  ): Promise<BaseResponse<Record<string, any>>> {
+    const [following, , userFollow] = await this.checkUserFollowStatusOrThrow(
+      currentUserId,
+      usernameFollow,
+    );
+
     return new BaseResponse(
       await t(this.i18nService, 'lang.get_user_success'),
       {
-        ...new UserSerializer(user, { type: 'PROFILE' }).serialize(),
+        ...new UserSerializer(userFollow, { type: 'PROFILE' }).serialize(),
         following,
       },
     );
   }
+
+  async followUser(
+    currentUserId: number,
+    currentUsername: string,
+    usernameFollow: string,
+  ): Promise<BaseResponse<Record<string, any>>> {
+    if (currentUsername === usernameFollow) {
+      throw new BadRequestException(
+        await t(this.i18nService, 'lang.cannot_follow_yourself'),
+      );
+    }
+
+    const [following, currentUser, userFollow] =
+      await this.checkUserFollowStatusOrThrow(
+        currentUserId,
+        usernameFollow,
+        'FOLLOW',
+      );
+
+    if (following) {
+      throw new BadRequestException(
+        await t(this.i18nService, 'lang.already_following_user'),
+      );
+    }
+
+    try {
+      await this.userRepository
+        .createQueryBuilder()
+        .relation(User, 'following')
+        .of(currentUser)
+        .add(userFollow);
+    } catch {
+      throw new InternalServerErrorException(
+        await t(this.i18nService, 'lang.failed_to_follow_user'),
+      );
+    }
+
+    return new BaseResponse(
+      await t(this.i18nService, 'lang.follow_user_success'),
+      {
+        ...new UserSerializer(userFollow, { type: 'PROFILE' }).serialize(),
+        following: true,
+      },
+    );
+  }
+
+  async unfollowUser(
+    currentUserId: number,
+    currentUsername: string,
+    usernameFollow: string,
+  ): Promise<BaseResponse<Record<string, any>>> {
+    if (currentUsername === usernameFollow) {
+      throw new BadRequestException(
+        await t(this.i18nService, 'lang.cannot_unfollow_yourself'),
+      );
+    }
+
+    const [following, currentUser, userFollow] =
+      await this.checkUserFollowStatusOrThrow(
+        currentUserId,
+        usernameFollow,
+        'UNFOLLOW',
+      );
+
+    if (!following) {
+      throw new BadRequestException(
+        await t(this.i18nService, 'lang.not_following_user'),
+      );
+    }
+
+    try {
+      await this.userRepository
+        .createQueryBuilder()
+        .relation(User, 'following')
+        .of(currentUser)
+        .remove(userFollow);
+    } catch {
+      throw new InternalServerErrorException(
+        await t(this.i18nService, 'lang.failed_to_unfollow_user'),
+      );
+    }
+
+    return new BaseResponse(
+      await t(this.i18nService, 'lang.unfollow_user_success'),
+      {
+        ...new UserSerializer(userFollow, { type: 'PROFILE' }).serialize(),
+        following: false,
+      },
+    );
+  }
 }
+
+export type PROFILE_FLOWS = 'PROFILE' | 'FOLLOW' | 'UNFOLLOW';
