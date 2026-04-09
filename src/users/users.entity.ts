@@ -5,6 +5,7 @@ import {
   ManyToMany,
   JoinTable,
 } from 'typeorm';
+import { Article } from '../articles/articles.entity';
 
 @Entity('users')
 export class User {
@@ -42,6 +43,10 @@ export class User {
 
   @ManyToMany(() => User, (user) => user.following)
   followers: User[];
+
+  @ManyToMany(() => Article)
+  @JoinTable({ name: 'user_favorites' })
+  favorites: Article[];
 
   token?: string;
 }
