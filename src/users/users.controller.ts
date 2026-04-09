@@ -68,11 +68,6 @@ export class UsersController {
     required: false,
   })
   async getCurrentUser(@CurrentUser() user: User) {
-    if (!user) {
-      throw new UnauthorizedException(
-        await t(this.i18nService, 'lang.user_not_found'),
-      );
-    }
     return new BaseResponse(
       await t(this.i18nService, 'lang.get_user_success'),
       new UserSerializer(user, { type: 'BASIC_INFO' }).serialize(),
@@ -93,11 +88,6 @@ export class UsersController {
     @Body() body: UpdateUserDto,
     @CurrentUser() user: User,
   ) {
-    if (!user) {
-      throw new UnauthorizedException(
-        await t(this.i18nService, 'lang.user_not_found'),
-      );
-    }
     const updatedUser = await this.usersService.updateUser(user.id, body);
     return updatedUser;
   }
@@ -116,16 +106,7 @@ export class UsersController {
     @CurrentUser() user: User,
     @Param('username') username: string,
   ) {
-    if (!user) {
-      throw new UnauthorizedException(
-        await t(this.i18nService, 'lang.user_not_found'),
-      );
-    }
-    const userProfile = await this.usersService.getUserProfile(
-      user.username,
-      username,
-    );
-    return userProfile;
+    return await this.usersService.getUserProfile(user.id, username);
   }
 
   @ApiBearerAuth('JWT-auth')
@@ -142,23 +123,11 @@ export class UsersController {
     @CurrentUser() user: User,
     @Param('username') usernameFollow: string,
   ) {
-    if (!user) {
-      throw new UnauthorizedException(
-        await t(this.i18nService, 'lang.user_not_found'),
-      );
-    }
-
-    if (user.username === usernameFollow) {
-      throw new BadRequestException(
-        await t(this.i18nService, 'lang.cannot_follow_yourself'),
-      );
-    }
-
-    const userProfile = await this.usersService.followUser(
+    return await this.usersService.followUser(
+      user.id,
       user.username,
       usernameFollow,
     );
-    return userProfile;
   }
 
   @ApiBearerAuth('JWT-auth')
@@ -175,22 +144,10 @@ export class UsersController {
     @CurrentUser() user: User,
     @Param('username') usernameFollow: string,
   ) {
-    if (!user) {
-      throw new UnauthorizedException(
-        await t(this.i18nService, 'lang.user_not_found'),
-      );
-    }
-
-    if (user.username === usernameFollow) {
-      throw new BadRequestException(
-        await t(this.i18nService, 'lang.cannot_unfollow_yourself'),
-      );
-    }
-
-    const userProfile = await this.usersService.unfollowUser(
+    return await this.usersService.unfollowUser(
+      user.id,
       user.username,
       usernameFollow,
     );
-    return userProfile;
   }
 }

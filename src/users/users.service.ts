@@ -123,12 +123,12 @@ export class UsersService {
   }
 
   async checkUserFollowStatusOrThrow(
-    currentUsername: string,
+    currentUserId: number,
     usernameFollow: string,
     profileFlow: PROFILE_FLOWS = 'PROFILE',
   ): Promise<[boolean, User, User]> {
     const currentUser = await this.userRepository.findOne({
-      where: { username: currentUsername },
+      where: { id: currentUserId },
       relations: ['following'],
     });
     const userFollow = await this.userRepository.findOne({
@@ -144,11 +144,11 @@ export class UsersService {
     const following = await this.userRepository.manager
       .createQueryBuilder()
       .from('followUser', 'f')
-      .where('f.username = :currentUsername', {
-        currentUsername: currentUser.username,
+      .where('f.userId = :currentUserId', {
+        currentUserId: currentUser.id,
       })
-      .andWhere('f.usernameFollow = :targetUsername', {
-        targetUsername: userFollow.username,
+      .andWhere('f.followUserId = :targetUserId', {
+        targetUserId: userFollow.id,
       })
       .getExists();
 
@@ -166,11 +166,11 @@ export class UsersService {
   }
 
   async getUserProfile(
-    currentUsername: string,
+    currentUserId: number,
     usernameFollow: string,
   ): Promise<BaseResponse<Record<string, any>>> {
     const [following, , userFollow] = await this.checkUserFollowStatusOrThrow(
-      currentUsername,
+      currentUserId,
       usernameFollow,
     );
 
@@ -184,12 +184,19 @@ export class UsersService {
   }
 
   async followUser(
+    currentUserId: number,
     currentUsername: string,
     usernameFollow: string,
   ): Promise<BaseResponse<Record<string, any>>> {
+    if (currentUsername === usernameFollow) {
+      throw new BadRequestException(
+        await t(this.i18nService, 'lang.cannot_follow_yourself'),
+      );
+    }
+
     const [following, currentUser, userFollow] =
       await this.checkUserFollowStatusOrThrow(
-        currentUsername,
+        currentUserId,
         usernameFollow,
         'FOLLOW',
       );
@@ -222,12 +229,19 @@ export class UsersService {
   }
 
   async unfollowUser(
+    currentUserId: number,
     currentUsername: string,
     usernameFollow: string,
   ): Promise<BaseResponse<Record<string, any>>> {
+    if (currentUsername === usernameFollow) {
+      throw new BadRequestException(
+        await t(this.i18nService, 'lang.cannot_unfollow_yourself'),
+      );
+    }
+
     const [following, currentUser, userFollow] =
       await this.checkUserFollowStatusOrThrow(
-        currentUsername,
+        currentUserId,
         usernameFollow,
         'UNFOLLOW',
       );

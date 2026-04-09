@@ -30,12 +30,12 @@ export class User {
   @JoinTable({
     name: 'followUser',
     joinColumn: {
-      name: 'username',
-      referencedColumnName: 'username',
+      name: 'userId',
+      referencedColumnName: 'id',
     },
     inverseJoinColumn: {
-      name: 'usernameFollow',
-      referencedColumnName: 'username',
+      name: 'followUserId',
+      referencedColumnName: 'id',
     },
   })
   following: User[];
