@@ -17,5 +17,21 @@
     "unfollow_user_success": "Hủy theo dõi người dùng thành công",
     "failed_to_unfollow_user": "Hủy theo dõi người dùng thất bại",
     "cannot_follow_yourself": "Không thể theo dõi chính mình",
-    "cannot_unfollow_yourself": "Không thể hủy theo dõi chính mình"
+    "cannot_unfollow_yourself": "Không thể hủy theo dõi chính mình",
+    "get_article_success": "Lấy bài viết thành công",
+    "get_articles_success": "Lấy danh sách bài viết thành công",
+    "create_article_success": "Tạo bài viết thành công",
+    "update_article_success": "Cập nhật bài viết thành công",
+    "delete_article_success": "Xóa bài viết thành công",
+    "article_not_found": "Không tìm thấy bài viết",
+    "failed_to_create_article": "Tạo bài viết thất bại",
+    "failed_to_update_article": "Cập nhật bài viết thất bại",
+    "failed_to_delete_article": "Xóa bài viết thất bại",
+    "get_comments_success": "Lấy bình luận thành công",
+    "add_comment_success": "Thêm bình luận thành công",
+    "delete_comment_success": "Xóa bình luận thành công",
+    "comment_not_found": "Không tìm thấy bình luận",
+    "failed_to_add_comment": "Thêm bình luận thất bại",
+    "failed_to_delete_comment": "Xóa bình luận thất bại",
+    "get_tags_success": "Lấy thẻ thành công"
 }

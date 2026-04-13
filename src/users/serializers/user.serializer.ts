@@ -2,7 +2,7 @@ export type UserSerializerType = 'BASIC_INFO' | 'PROFILE';
 
 const USER_FIELDS: Record<UserSerializerType, string[]> = {
   BASIC_INFO: ['email', 'username', 'bio', 'image'],
-  PROFILE: ['username', 'bio', 'image'],
+  PROFILE: ['username', 'bio', 'image', 'following'],
 };
 
 export class UserSerializer {
