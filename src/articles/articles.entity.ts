@@ -7,9 +7,11 @@ import {
   ManyToOne,
   ManyToMany,
   JoinTable,
+  OneToMany,
 } from 'typeorm';
 import { User } from '../users/users.entity';
 import { Tag } from './tags.entity';
+import { Favorite } from './favorites.entity';
 
 @Entity('articles')
 export class Article {
@@ -43,4 +45,7 @@ export class Article {
 
   @ManyToOne(() => User, { eager: true })
   author: User;
+
+  @OneToMany(() => Favorite, (fav) => fav.article)
+  favorites: Favorite[];
 }

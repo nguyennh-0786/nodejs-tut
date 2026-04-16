@@ -44,9 +44,5 @@ export class User {
   @ManyToMany(() => User, (user) => user.following)
   followers: User[];
 
-  @ManyToMany(() => Article)
-  @JoinTable({ name: 'user_favorites' })
-  favorites: Article[];
-
   token?: string;
 }

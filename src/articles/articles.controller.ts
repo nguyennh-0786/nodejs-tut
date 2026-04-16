@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   Query,
@@ -54,8 +55,8 @@ export class ArticlesController {
     @Query('tag') tag?: string,
     @Query('author') author?: string,
     @Query('favorited') favorited?: string,
-    @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+    @Query('offset', new ParseIntPipe({ optional: true })) offset?: number,
   ) {
     return this.articlesService.findAll({
       tag,
@@ -73,14 +74,14 @@ export class ArticlesController {
   @ApiOperation({
     summary: 'Get feed articles',
     description:
-      'Returns articles from users you follow, provide tag, author or favorited query parameter to filter results',
+      'Returns articles from users you follow, ordered by most recent first.',
   })
   @ApiQuery({ name: 'limit', required: false, description: 'Limit' })
   @ApiQuery({ name: 'offset', required: false, description: 'Offset' })
   findFeed(
     @CurrentUser() user: User,
-    @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+    @Query('offset', new ParseIntPipe({ optional: true })) offset?: number,
   ) {
     return this.articlesService.findFeed({
       user,
@@ -136,7 +137,7 @@ export class ArticlesController {
     summary: 'Delete an article',
     description: 'Deletes an existing article',
   })
-  delete(@Param('slug') slug: string) {
-    return this.articlesService.delete(slug);
+  delete(@CurrentUser() user: User, @Param('slug') slug: string) {
+    return this.articlesService.delete(slug, user);
   }
 }

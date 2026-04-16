@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -63,7 +64,9 @@ export class ArticlesService {
     if (arg0.favorited) {
       articlesQuery
         .leftJoinAndSelect('article.favorites', 'favorite')
-        .andWhere('favorite.userId = :userId', { userId: arg0.favorited });
+        .andWhere('favorite.username = :username', {
+          username: arg0.favorited,
+        });
     }
 
     const articles = await articlesQuery
@@ -83,7 +86,7 @@ export class ArticlesService {
       );
     }
 
-    return articles.map((article) => ({
+    const serialized = articles.map((article) => ({
       ...article,
       author: article.author
         ? new UserSerializer(
@@ -95,6 +98,11 @@ export class ArticlesService {
           ).serialize()
         : null,
     }));
+
+    return new BaseResponse(
+      await t(this.i18nService, 'lang.get_articles_success'),
+      { articles: serialized, articlesCount: serialized.length },
+    );
   }
 
   async findFeed(arg0: {
@@ -103,26 +111,34 @@ export class ArticlesService {
     offset: number | undefined;
   }) {
     const { user, limit = 20, offset = 0 } = arg0;
-    const articlesQuery = this.articleRepository.createQueryBuilder('article');
-    articlesQuery
-      .leftJoinAndSelect('article.author', 'author')
-      .andWhere('author.username = :username', { username: user.username });
-
-    const articles = await articlesQuery
-      .orderBy('article.createdAt', 'DESC')
-      .limit(limit)
-      .offset(offset)
-      .getMany();
 
     const userWithFollowing = await this.userRepository.findOne({
       where: { id: user.id },
       relations: ['following'],
     });
-    const followingIds = new Set(
-      userWithFollowing?.following.map((u) => u.id) ?? [],
-    );
+    const followingIdList = userWithFollowing?.following.map((u) => u.id) ?? [];
 
-    return articles.map((article) => ({
+    if (followingIdList.length === 0) {
+      return new BaseResponse(
+        await t(this.i18nService, 'lang.get_articles_success'),
+        { articles: [], articlesCount: 0 },
+      );
+    }
+
+    const followingIds = new Set(followingIdList);
+
+    const articles = await this.articleRepository
+      .createQueryBuilder('article')
+      .leftJoinAndSelect('article.author', 'author')
+      .where('author.id IN (:...followingIds)', {
+        followingIds: followingIdList,
+      })
+      .orderBy('article.createdAt', 'DESC')
+      .limit(limit)
+      .offset(offset)
+      .getMany();
+
+    const serialized = articles.map((article) => ({
       ...article,
       author: article.author
         ? new UserSerializer(
@@ -134,6 +150,11 @@ export class ArticlesService {
           ).serialize()
         : null,
     }));
+
+    return new BaseResponse(
+      await t(this.i18nService, 'lang.get_articles_success'),
+      { articles: serialized, articlesCount: serialized.length },
+    );
   }
 
   async findOne(slug: string, currentUser?: User) {
@@ -164,6 +185,12 @@ export class ArticlesService {
             : null,
         }
       : null;
+
+    if (serializedArticle === null) {
+      throw new NotFoundException(
+        await t(this.i18nService, 'lang.article_not_found'),
+      );
+    }
 
     return new BaseResponse(
       await t(this.i18nService, 'lang.get_article_success'),
@@ -205,6 +232,7 @@ export class ArticlesService {
         await t(this.i18nService, 'lang.create_article_success'),
         { ...article, author: serializedAuthor },
       );
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       throw new InternalServerErrorException(
         await t(this.i18nService, 'lang.failed_to_create_article'),
@@ -221,11 +249,19 @@ export class ArticlesService {
       where: { slug },
       relations: ['author'],
     });
+
     if (!article) {
       throw new NotFoundException(
         await t(this.i18nService, 'lang.article_not_found'),
       );
     }
+
+    if (article.author.id !== currentUser.id) {
+      throw new ForbiddenException(
+        await t(this.i18nService, 'lang.failed_to_update_article'),
+      );
+    }
+
     Object.assign(article, updateArticleDto);
     const newSlug = article.title.toLowerCase().replace(/\s+/g, '-');
     if (newSlug !== slug) {
@@ -258,10 +294,10 @@ export class ArticlesService {
     );
   }
 
-  async delete(slug: string) {
+  async delete(slug: string, currentUser: User) {
     const article = await this.articleRepository.findOne({
       where: { slug },
-      relations: ['tagList'],
+      relations: ['tagList', 'author'],
     });
     if (!article) {
       throw new NotFoundException(
@@ -269,19 +305,17 @@ export class ArticlesService {
       );
     }
 
+    if (article.author.id !== currentUser.id) {
+      throw new ForbiddenException(
+        await t(this.i18nService, 'lang.failed_to_delete_article'),
+      );
+    }
+
     // Delete comments
     await this.commentRepository.delete({ article: { id: article.id } });
 
     // Delete favorites entity
-    await this.favoriteRepository.delete({ articleId: String(article.id) });
-
-    // Delete join table user_favorites
-    await this.articleRepository.manager
-      .createQueryBuilder()
-      .delete()
-      .from('user_favorites')
-      .where('"articlesId" = :articlesId', { articlesId: article.id })
-      .execute();
+    await this.favoriteRepository.delete({ article: { id: article.id } });
 
     // Delete article
     await this.articleRepository.remove(article);
