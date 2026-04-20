@@ -5,19 +5,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Article } from './articles.entity';
+import { Article } from './entity/articles.entity';
 import { I18nService } from 'nestjs-i18n';
-import { Comment } from './comments.entity';
-import { Tag } from './tags.entity';
-import { Favorite } from './favorites.entity';
-import { Repository } from 'typeorm';
+import { Comment } from './entity/comments.entity';
+import { Tag } from './entity/tags.entity';
+import { Favorite } from './entity/favorites.entity';
+import { DataSource, Repository } from 'typeorm';
 import { User } from 'src/users/users.entity';
 import { BaseResponse } from 'src/common/base.response';
 import { t } from 'src/shared/utils';
-import { CreateArticleDto } from './create-article.dto';
-import { UpdateArticleDto } from './update-article.dto';
+import { CreateArticleDto } from './dto/create-article.dto';
+import { UpdateArticleDto } from './dto/update-article.dto';
 import { UsersService } from 'src/users/users.service';
-import { UserSerializer } from 'src/users/serializers/user.serializer';
+import { ArticleSerializer } from './serializers/article.serializer';
 
 @Injectable()
 export class ArticlesService {
@@ -32,6 +32,7 @@ export class ArticlesService {
     private readonly favoriteRepository: Repository<Favorite>,
     private readonly i18nService: I18nService,
     private readonly userService: UsersService,
+    private readonly dataSource: DataSource,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {}
@@ -69,11 +70,11 @@ export class ArticlesService {
         });
     }
 
-    const articles = await articlesQuery
+    const [articles, total] = await articlesQuery
       .orderBy('article.createdAt', 'DESC')
       .limit(limit)
       .offset(offset)
-      .getMany();
+      .getManyAndCount();
 
     let followingIds = new Set<number>();
     if (currentUser) {
@@ -86,22 +87,29 @@ export class ArticlesService {
       );
     }
 
-    const serialized = articles.map((article) => ({
-      ...article,
-      author: article.author
-        ? new UserSerializer(
-            {
-              ...article.author,
-              following: followingIds.has(article.author.id),
-            },
-            { type: 'PROFILE' },
-          ).serialize()
-        : null,
-    }));
+    const serialized = articles.map((article) =>
+      new ArticleSerializer(
+        {
+          ...article,
+          following: article.author
+            ? followingIds.has(article.author.id)
+            : false,
+          favorited: false,
+        },
+        { type: 'DETAIL' },
+      ).serialize(),
+    );
 
     return new BaseResponse(
-      await t(this.i18nService, 'lang.get_articles_success'),
-      { articles: serialized, articlesCount: serialized.length },
+      await t(this.i18nService, 'article.get_articles_success'),
+      {
+        articles: serialized,
+        pagy: {
+          total,
+          page: Math.floor(offset / limit) + 1,
+          items: limit,
+        },
+      },
     );
   }
 
@@ -120,14 +128,14 @@ export class ArticlesService {
 
     if (followingIdList.length === 0) {
       return new BaseResponse(
-        await t(this.i18nService, 'lang.get_articles_success'),
+        await t(this.i18nService, 'article.get_articles_success'),
         { articles: [], articlesCount: 0 },
       );
     }
 
     const followingIds = new Set(followingIdList);
 
-    const articles = await this.articleRepository
+    const [articles, total] = await this.articleRepository
       .createQueryBuilder('article')
       .leftJoinAndSelect('article.author', 'author')
       .where('author.id IN (:...followingIds)', {
@@ -136,24 +144,31 @@ export class ArticlesService {
       .orderBy('article.createdAt', 'DESC')
       .limit(limit)
       .offset(offset)
-      .getMany();
+      .getManyAndCount();
 
-    const serialized = articles.map((article) => ({
-      ...article,
-      author: article.author
-        ? new UserSerializer(
-            {
-              ...article.author,
-              following: followingIds.has(article.author.id),
-            },
-            { type: 'PROFILE' },
-          ).serialize()
-        : null,
-    }));
+    const serialized = articles.map((article) =>
+      new ArticleSerializer(
+        {
+          ...article,
+          following: article.author
+            ? followingIds.has(article.author.id)
+            : false,
+          favorited: false,
+        },
+        { type: 'DETAIL' },
+      ).serialize(),
+    );
 
     return new BaseResponse(
-      await t(this.i18nService, 'lang.get_articles_success'),
-      { articles: serialized, articlesCount: serialized.length },
+      await t(this.i18nService, 'article.get_articles_success'),
+      {
+        articles: serialized,
+        pagy: {
+          total,
+          page: Math.floor(offset / limit) + 1,
+          items: limit,
+        },
+      },
     );
   }
 
@@ -162,6 +177,12 @@ export class ArticlesService {
       where: { slug },
       relations: ['author'],
     });
+
+    if (article === null) {
+      throw new NotFoundException(
+        await t(this.i18nService, 'article.article_not_found'),
+      );
+    }
 
     let following = false;
     if (currentUser && article?.author) {
@@ -175,67 +196,75 @@ export class ArticlesService {
     }
 
     const serializedArticle = article
-      ? {
-          ...article,
-          author: article.author
-            ? new UserSerializer(
-                { ...article.author, following },
-                { type: 'PROFILE' },
-              ).serialize()
-            : null,
-        }
+      ? new ArticleSerializer(
+          { ...article, following, favorited: false },
+          { type: 'DETAIL' },
+        ).serialize()
       : null;
 
-    if (serializedArticle === null) {
-      throw new NotFoundException(
-        await t(this.i18nService, 'lang.article_not_found'),
-      );
-    }
-
     return new BaseResponse(
-      await t(this.i18nService, 'lang.get_article_success'),
+      await t(this.i18nService, 'article.get_article_success'),
       serializedArticle,
     );
   }
 
   async create(user: User, createArticleDto: CreateArticleDto) {
     const { tagList: tagNames, ...rest } = createArticleDto;
+
+    const userEntity = await this.userService.findUserByIdOrThrow(user.id);
+    const slug = rest.title.toLowerCase().replace(/\s+/g, '-');
+
     try {
-      const tags = await Promise.all(
-        (tagNames ?? []).map(async (name) => {
-          let tag = await this.tagRepository.findOne({ where: { name } });
-          if (!tag) {
-            tag = this.tagRepository.create({ name });
-            await this.tagRepository.save(tag);
+      const article = await this.dataSource.transaction<Article>(
+        async (manager) => {
+          const existingTags = tagNames?.length
+            ? await manager.findBy(
+                Tag,
+                tagNames.map((name) => ({ name })),
+              )
+            : [];
+
+          const existingNames = new Set(existingTags.map((t) => t.name));
+          const newNames = (tagNames ?? []).filter(
+            (n) => !existingNames.has(n),
+          );
+
+          let newTags: Tag[] = [];
+          if (newNames.length > 0) {
+            const inserted = await manager
+              .createQueryBuilder()
+              .insert()
+              .into(Tag)
+              .values(newNames.map((name) => ({ name })))
+              .orIgnore()
+              .returning('*')
+              .execute();
+            newTags = inserted.generatedMaps as Tag[];
           }
-          return tag;
-        }),
+
+          const tags = [...existingTags, ...newTags];
+
+          const article = manager.create(Article, {
+            ...rest,
+            slug,
+            tagList: tags,
+            author: userEntity,
+          });
+          return manager.save(article);
+        },
       );
 
-      const userEntity = await this.userService.findUserByIdOrThrow(user.id);
-      const slug = rest.title.toLowerCase().replace(/\s+/g, '-');
-
-      const article = this.articleRepository.create({
-        ...rest,
-        slug,
-        tagList: tags,
-        author: userEntity,
-      });
-      await this.articleRepository.save(article);
-
-      const serializedAuthor = new UserSerializer(
-        { ...userEntity, following: false },
-        { type: 'PROFILE' },
-      ).serialize();
-
       return new BaseResponse(
-        await t(this.i18nService, 'lang.create_article_success'),
-        { ...article, author: serializedAuthor },
+        await t(this.i18nService, 'article.create_article_success'),
+        new ArticleSerializer(
+          { ...article, following: false, favorited: false },
+          { type: 'DETAIL' },
+        ).serialize(),
       );
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       throw new InternalServerErrorException(
-        await t(this.i18nService, 'lang.failed_to_create_article'),
+        await t(this.i18nService, 'article.failed_to_create_article'),
       );
     }
   }
@@ -252,13 +281,13 @@ export class ArticlesService {
 
     if (!article) {
       throw new NotFoundException(
-        await t(this.i18nService, 'lang.article_not_found'),
+        await t(this.i18nService, 'article.article_not_found'),
       );
     }
 
     if (article.author.id !== currentUser.id) {
       throw new ForbiddenException(
-        await t(this.i18nService, 'lang.failed_to_update_article'),
+        await t(this.i18nService, 'article.failed_to_update_article'),
       );
     }
 
@@ -267,7 +296,14 @@ export class ArticlesService {
     if (newSlug !== slug) {
       article.slug = newSlug;
     }
-    await this.articleRepository.save(article);
+    try {
+      await this.articleRepository.save(article);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      throw new InternalServerErrorException(
+        await t(this.i18nService, 'article.failed_to_update_article'),
+      );
+    }
 
     let following = false;
     if (article.author) {
@@ -281,16 +317,11 @@ export class ArticlesService {
     }
 
     return new BaseResponse(
-      await t(this.i18nService, 'lang.update_article_success'),
-      {
-        ...article,
-        author: article.author
-          ? new UserSerializer(
-              { ...article.author, following },
-              { type: 'PROFILE' },
-            ).serialize()
-          : null,
-      },
+      await t(this.i18nService, 'article.update_article_success'),
+      new ArticleSerializer(
+        { ...article, following, favorited: false },
+        { type: 'DETAIL' },
+      ).serialize(),
     );
   }
 
@@ -301,27 +332,31 @@ export class ArticlesService {
     });
     if (!article) {
       throw new NotFoundException(
-        await t(this.i18nService, 'lang.article_not_found'),
+        await t(this.i18nService, 'article.article_not_found'),
       );
     }
 
     if (article.author.id !== currentUser.id) {
       throw new ForbiddenException(
-        await t(this.i18nService, 'lang.failed_to_delete_article'),
+        await t(this.i18nService, 'article.failed_to_delete_article'),
       );
     }
 
-    // Delete comments
-    await this.commentRepository.delete({ article: { id: article.id } });
-
-    // Delete favorites entity
-    await this.favoriteRepository.delete({ article: { id: article.id } });
-
-    // Delete article
-    await this.articleRepository.remove(article);
+    try {
+      await this.dataSource.transaction(async (manager) => {
+        await manager.delete(Comment, { article: { id: article.id } });
+        await manager.delete(Favorite, { article: { id: article.id } });
+        await manager.remove(article);
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      throw new InternalServerErrorException(
+        await t(this.i18nService, 'article.failed_to_delete_article'),
+      );
+    }
 
     return new BaseResponse(
-      await t(this.i18nService, 'lang.delete_article_success'),
+      await t(this.i18nService, 'article.delete_article_success'),
       null,
     );
   }

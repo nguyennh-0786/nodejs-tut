@@ -2,30 +2,29 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
-import { User } from '../users/users.entity';
+import { User } from '../../users/users.entity';
 import { Article } from './articles.entity';
 
-@Entity('comments')
-export class Comment {
+@Entity('favorites')
+export class Favorite {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
-  body: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
+  username: string;
 
   @UpdateDateColumn()
   updatedAt: Date;
 
   @ManyToOne(() => User, { eager: true })
+  @JoinColumn({ name: 'authorId' })
   author: User;
 
-  @ManyToOne(() => Article, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Article, (article) => article.favorites, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'articleId' })
   article: Article;
 }

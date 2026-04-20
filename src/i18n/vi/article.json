@@ -1,0 +1,11 @@
+{
+    "get_article_success": "Lấy bài viết thành công",
+    "get_articles_success": "Lấy danh sách bài viết thành công",
+    "create_article_success": "Tạo bài viết thành công",
+    "update_article_success": "Cập nhật bài viết thành công",
+    "delete_article_success": "Xóa bài viết thành công",
+    "article_not_found": "Không tìm thấy bài viết",
+    "failed_to_create_article": "Tạo bài viết thất bại",
+    "failed_to_update_article": "Cập nhật bài viết thất bại",
+    "failed_to_delete_article": "Xóa bài viết thất bại"
+}

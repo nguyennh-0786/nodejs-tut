@@ -9,9 +9,9 @@ import {
   JoinTable,
   OneToMany,
 } from 'typeorm';
-import { User } from '../users/users.entity';
-import { Tag } from './tags.entity';
 import { Favorite } from './favorites.entity';
+import { User } from 'src/users/users.entity';
+import { Tag } from './tags.entity';
 
 @Entity('articles')
 export class Article {
