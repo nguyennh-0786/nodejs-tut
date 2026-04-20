@@ -111,6 +111,39 @@ export class ArticlesController {
     description: 'Deletes an existing article',
   })
   delete(@CurrentUser() user: User, @Param('slug') slug: string) {
-    return this.articlesService.delete(slug, user);
+    return this.articlesService.delete(user, slug);
+  }
+
+  @Post('articles/:slug/favorite')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Favorite an article',
+    description: 'Marks an article as favorite for the current user',
+  })
+  favorite(@CurrentUser() user: User, @Param('slug') slug: string) {
+    return this.articlesService.favorite(slug, user);
+  }
+
+  @Delete('articles/:slug/favorite')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Unfavorite an article',
+    description: "Removes an article from the current user's favorites",
+  })
+  unfavorite(@CurrentUser() user: User, @Param('slug') slug: string) {
+    return this.articlesService.unfavorite(slug, user);
+  }
+
+  @Get('tags')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({
+    summary: 'Get all tags',
+    description: 'Returns all available tags',
+  })
+  findAllTags() {
+    return this.articlesService.findAllTags();
   }
 }

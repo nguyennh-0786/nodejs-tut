@@ -7,6 +7,7 @@ import {
   ManyToOne,
   ManyToMany,
   JoinTable,
+  JoinColumn,
   OneToMany,
 } from 'typeorm';
 import { Favorite } from './favorites.entity';
@@ -16,36 +17,40 @@ import { Tag } from './tags.entity';
 @Entity('articles')
 export class Article {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ unique: true })
-  slug: string;
+  slug!: string;
 
   @Column()
-  title: string;
+  title!: string;
 
   @Column({ default: '' })
-  description: string;
+  description!: string;
 
   @Column({ default: '' })
-  body: string;
+  body!: string;
 
   @ManyToMany(() => Tag, (tag) => tag.articles, { eager: true })
   @JoinTable()
-  tagList: Tag[];
+  tagList!: Tag[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @Column({ default: 0 })
-  favoritesCount: number;
+  favoritesCount!: number;
+
+  @Column({ nullable: false })
+  authorId!: number;
 
   @ManyToOne(() => User, { eager: true })
-  author: User;
+  @JoinColumn({ name: 'authorId' })
+  author!: User;
 
   @OneToMany(() => Favorite, (fav) => fav.article)
-  favorites: Favorite[];
+  favorites!: Favorite[];
 }

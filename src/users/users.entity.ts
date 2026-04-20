@@ -9,22 +9,22 @@ import {
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ unique: true })
-  username: string;
+  username!: string;
 
   @Column({ unique: true })
-  email: string;
+  email!: string;
 
   @Column()
-  password: string;
+  password!: string;
 
   @Column({ nullable: true })
-  bio: string;
+  bio!: string;
 
   @Column({ nullable: true })
-  image: string;
+  image!: string;
 
   @ManyToMany(() => User, (user) => user.followers)
   @JoinTable({
@@ -38,10 +38,10 @@ export class User {
       referencedColumnName: 'id',
     },
   })
-  following: User[];
+  following!: User[];
 
   @ManyToMany(() => User, (user) => user.following)
-  followers: User[];
+  followers!: User[];
 
   token?: string;
 }

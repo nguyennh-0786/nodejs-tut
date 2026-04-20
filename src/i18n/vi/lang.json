@@ -24,5 +24,11 @@
     "comment_not_found": "Không tìm thấy bình luận",
     "failed_to_add_comment": "Thêm bình luận thất bại",
     "failed_to_delete_comment": "Xóa bình luận thất bại",
-    "get_tags_success": "Lấy thẻ thành công"
+    "get_tags_success": "Lấy thẻ thành công",
+    "article_already_favorited": "Bài viết đã được yêu thích",
+    "article_not_favorited": "Bài viết chưa được yêu thích",
+    "failed_to_favorite_article": "Yêu thích bài viết thất bại",
+    "failed_to_unfavorite_article": "Hủy yêu thích bài viết thất bại",
+    "article_favorited_success": "Yêu thích bài viết thành công",
+    "article_unfavorited_success": "Hủy yêu thích bài viết thành công"
 }

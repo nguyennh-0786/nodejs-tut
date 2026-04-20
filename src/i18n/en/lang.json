@@ -24,5 +24,11 @@
     "comment_not_found": "Comment not found",
     "failed_to_add_comment": "Failed to add comment",
     "failed_to_delete_comment": "Failed to delete comment",
-    "get_tags_success": "Tags retrieved successfully"
+    "get_tags_success": "Tags retrieved successfully",
+    "article_already_favorited": "Article already favorited",
+    "article_not_favorited": "Article not favorited",
+    "failed_to_favorite_article": "Failed to favorite article",
+    "failed_to_unfavorite_article": "Failed to unfavorite article",
+    "article_favorited_success": "Article favorited successfully",
+    "article_unfavorited_success": "Article unfavorited successfully"
 }
