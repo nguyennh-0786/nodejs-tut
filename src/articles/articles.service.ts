@@ -7,7 +7,6 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Article } from './entity/articles.entity';
 import { I18nService } from 'nestjs-i18n';
-import { Comment } from './entity/comments.entity';
 import { Tag } from './entity/tags.entity';
 import { Favorite } from './entity/favorites.entity';
 import { DataSource, Repository } from 'typeorm';
@@ -18,15 +17,12 @@ import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { UsersService } from 'src/users/users.service';
 import { ArticleSerializer } from './serializers/article.serializer';
-import { CreateCommentDto } from './create-comment.dto';
 
 @Injectable()
 export class ArticlesService {
   constructor(
     @InjectRepository(Article)
     private readonly articleRepository: Repository<Article>,
-    @InjectRepository(Comment)
-    private readonly commentRepository: Repository<Comment>,
     @InjectRepository(Tag)
     private readonly tagRepository: Repository<Tag>,
     @InjectRepository(Favorite)
@@ -88,12 +84,11 @@ export class ArticlesService {
       new ArticleSerializer(
         {
           ...article,
-      favorited: favoritedArticleIds.has(article.id),
-      favoritesCount: favoritesCountMap.get(article.id) || 0,
+          favorited: favoritedArticleIds.has(article.id),
+          favoritesCount: favoritesCountMap.get(article.id) || 0,
           following: article.author
             ? followingIds.has(article.author.id)
             : false,
-          favorited: false,
         },
         { type: 'DETAIL' },
       ).serialize(),
@@ -132,8 +127,6 @@ export class ArticlesService {
       );
     }
 
-    const followingIds = new Set(followingIdList);
-
     const [articles, total] = await this.articleRepository
       .createQueryBuilder('article')
       .leftJoinAndSelect('article.author', 'author')
@@ -145,14 +138,19 @@ export class ArticlesService {
       .offset(offset)
       .getManyAndCount();
 
+    const followingIds = await this.getFollowingUserIds(user);
+    const { favoritedArticleIds, favoritesCountMap } =
+      await this.getFavoriteInfo(articles, user);
+
     const serialized = articles.map((article) =>
       new ArticleSerializer(
         {
           ...article,
+          favorited: favoritedArticleIds.has(article.id),
+          favoritesCount: favoritesCountMap.get(article.id) || 0,
           following: article.author
             ? followingIds.has(article.author.id)
             : false,
-          favorited: false,
         },
         { type: 'DETAIL' },
       ).serialize(),
@@ -169,25 +167,6 @@ export class ArticlesService {
         },
       },
     );
-    const followingIds = await this.getFollowingUserIds(user);
-
-    const { favoritedArticleIds, favoritesCountMap } =
-      await this.getFavoriteInfo(articles, user);
-
-    return articles.map((article) => ({
-      ...article,
-      favorited: favoritedArticleIds.has(article.id),
-      favoritesCount: favoritesCountMap.get(article.id) || 0,
-      author: article.author
-        ? new UserSerializer(
-            {
-              ...article.author,
-              following: followingIds.has(article.author.id),
-            },
-            { type: 'PROFILE' },
-          ).serialize()
-        : null,
-    }));
   }
 
   async findOne(slug: string, currentUser?: User) {
@@ -215,26 +194,15 @@ export class ArticlesService {
     const { favoritedArticleIds, favoritesCountMap } =
       await this.getFavoriteInfo([article], currentUser);
 
-    const serializedArticle = article
-      ? new ArticleSerializer(
-          { ...article, following, favorited: false },
-          { type: 'DETAIL' },
-        ).serialize()
-      ? {
-          ...article,
-          favorited: favoritedArticleIds.has(article.id),
-          favoritesCount: favoritesCountMap.get(article.id) || 0,
-          author: article.author
-            ? new UserSerializer(
-                {
-                  ...article.author,
-                  following: followingIds.has(article.author.id),
-                },
-                { type: 'PROFILE' },
-              ).serialize()
-            : null,
-        }
-      : null;
+    const serializedArticle = new ArticleSerializer(
+      {
+        ...article,
+        favorited: favoritedArticleIds.has(article.id),
+        favoritesCount: favoritesCountMap.get(article.id) || 0,
+        following: article.author ? followingIds.has(article.author.id) : false,
+      },
+      { type: 'DETAIL' },
+    ).serialize();
 
     return new BaseResponse(
       await t(this.i18nService, 'article.get_article_success'),
@@ -296,7 +264,6 @@ export class ArticlesService {
         ).serialize(),
       );
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       throw new InternalServerErrorException(
         await t(this.i18nService, 'article.failed_to_create_article'),
@@ -347,28 +314,20 @@ export class ArticlesService {
     return new BaseResponse(
       await t(this.i18nService, 'article.update_article_success'),
       new ArticleSerializer(
-        { ...article, following, favorited: false },
+        {
+          ...article,
+          favorited: favoritedArticleIds.has(article.id),
+          favoritesCount: favoritesCountMap.get(article.id) || 0,
+          following: article.author
+            ? followingIds.has(article.author.id)
+            : false,
+        },
         { type: 'DETAIL' },
       ).serialize(),
-      await t(this.i18nService, 'lang.update_article_success'),
-      {
-        ...article,
-        favorited: favoritedArticleIds.has(article.id),
-        favoritesCount: favoritesCountMap.get(article.id) || 0,
-        author: article.author
-          ? new UserSerializer(
-              {
-                ...article.author,
-                following: followingIds.has(article.author.id),
-              },
-              { type: 'PROFILE' },
-            ).serialize()
-          : null,
-      },
     );
   }
 
-  async delete(user: User, slug: string, currentUser: User) {
+  async delete(user: User, slug: string) {
     const article = await this.articleRepository.findOne({
       where: { slug },
       relations: ['tagList', 'author'],
@@ -385,7 +344,7 @@ export class ArticlesService {
       );
     }
 
-    if (article.author.id !== currentUser.id) {
+    if (article.author.id !== user.id) {
       throw new ForbiddenException(
         await t(this.i18nService, 'article.failed_to_delete_article'),
       );
@@ -410,119 +369,6 @@ export class ArticlesService {
     );
   }
 
-  async findComments(slug: string, currentUser: User) {
-    const article = await this.articleRepository.findOne({ where: { slug } });
-    if (!article) {
-      throw new NotFoundException(
-        await t(this.i18nService, 'lang.article_not_found'),
-      );
-    }
-
-    const comments = await this.commentRepository.find({
-      where: { article: { id: article.id } },
-      relations: ['author'],
-      order: { createdAt: 'DESC' },
-    });
-
-    const followingIds = await this.getFollowingUserIds(currentUser);
-
-    const serializedComments = comments.map((comment) => ({
-      ...comment,
-      author: comment.author
-        ? new UserSerializer(
-            {
-              ...comment.author,
-              following: followingIds.has(comment.author.id),
-            },
-            { type: 'PROFILE' },
-          ).serialize()
-        : null,
-    }));
-
-    return new BaseResponse(
-      await t(this.i18nService, 'lang.get_comments_success'),
-      serializedComments,
-    );
-  }
-
-  async createComment(slug: string, body: CreateCommentDto, user: User) {
-    const article = await this.articleRepository.findOne({ where: { slug } });
-    if (!article) {
-      throw new NotFoundException(
-        await t(this.i18nService, 'lang.article_not_found'),
-      );
-    }
-
-    const userEntity = await this.userService.findUserByIdOrThrow(user.id);
-
-    try {
-      const comment = this.commentRepository.create({
-        body: body.body,
-        article,
-        author: userEntity,
-      });
-      await this.commentRepository.save(comment);
-
-      const followingIds = await this.getFollowingUserIds(user);
-
-      const serializedComment = {
-        ...comment,
-        article: undefined,
-        author: comment.author
-          ? new UserSerializer(
-              {
-                ...comment.author,
-                following: followingIds.has(comment.author.id),
-              },
-              { type: 'PROFILE' },
-            ).serialize()
-          : null,
-      };
-
-      return new BaseResponse(
-        await t(this.i18nService, 'lang.add_comment_success'),
-        serializedComment,
-      );
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      throw new InternalServerErrorException(
-        await t(this.i18nService, 'lang.failed_to_add_comment'),
-      );
-    }
-  }
-
-  async deleteComment(slug: string, id: number, user: User) {
-    const article = await this.articleRepository.findOne({ where: { slug } });
-    if (!article) {
-      throw new NotFoundException(
-        await t(this.i18nService, 'lang.article_not_found'),
-      );
-    }
-
-    const comment = await this.commentRepository.findOne({
-      where: { id, article: { id: article.id } },
-      relations: ['author'],
-    });
-    if (!comment) {
-      throw new NotFoundException(
-        await t(this.i18nService, 'lang.comment_not_found'),
-      );
-    }
-
-    if (comment.author.id !== user.id) {
-      throw new ForbiddenException(
-        await t(this.i18nService, 'lang.failed_to_delete_comment'),
-      );
-    }
-
-    await this.commentRepository.remove(comment);
-
-    return new BaseResponse(
-      await t(this.i18nService, 'lang.delete_comment_success'),
-      null,
-    );
-  }
-
   private async getFavoriteInfo(
     articles: Article[],
     currentUser?: User,
@@ -532,11 +378,11 @@ export class ArticlesService {
   }> {
     const userFavorites = currentUser
       ? await this.favoriteRepository.find({
-          where: { userId: String(currentUser.id) },
+          where: { username: String(currentUser.username) },
         })
       : [];
     const favoritedArticleIds = new Set(
-      userFavorites.map((fav) => Number(fav.articleId)),
+      userFavorites.map((fav) => Number(fav.article.id)),
     );
 
     const articleIds = articles.map((a) => a.id);
@@ -559,7 +405,7 @@ export class ArticlesService {
     return { favoritedArticleIds, favoritesCountMap };
   }
 
-  private async getFollowingUserIds(user: User): Promise<Set<number>> {
+  public async getFollowingUserIds(user: User): Promise<Set<number>> {
     let followingIds = new Set<number>();
     if (user) {
       const userWithFollowing = await this.userRepository.findOne({
@@ -585,7 +431,7 @@ export class ArticlesService {
     }
 
     const existingFavorite = await this.favoriteRepository.findOne({
-      where: { articleId: String(article.id), userId: String(user.id) },
+      where: { article: { id: article.id }, author: { id: user.id } },
     });
     if (existingFavorite) {
       return new BaseResponse(
@@ -595,28 +441,29 @@ export class ArticlesService {
     }
 
     try {
-      const followingIds = await this.getFollowingUserIds(user);
-
       const favorite = this.favoriteRepository.create({
-        articleId: String(article.id),
-        userId: String(user.id),
+        article,
+        author: { id: user.id } as User,
+        username: user.username,
       });
       await this.favoriteRepository.save(favorite);
 
+      const followingIds = await this.getFollowingUserIds(user);
+      const { favoritesCountMap } = await this.getFavoriteInfo([article]);
+
       return new BaseResponse(
         await t(this.i18nService, 'lang.article_favorited_success'),
-        {
-          ...article,
-          author: article.author
-            ? new UserSerializer(
-                {
-                  ...article.author,
-                  following: followingIds.has(article.author.id),
-                },
-                { type: 'PROFILE' },
-              ).serialize()
-            : null,
-        },
+        new ArticleSerializer(
+          {
+            ...article,
+            favorited: true,
+            favoritesCount: favoritesCountMap.get(article.id) || 0,
+            following: article.author
+              ? followingIds.has(article.author.id)
+              : false,
+          },
+          { type: 'DETAIL' },
+        ).serialize(),
       );
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
@@ -638,7 +485,7 @@ export class ArticlesService {
     }
 
     const existingFavorite = await this.favoriteRepository.findOne({
-      where: { articleId: String(article.id), userId: String(user.id) },
+      where: { article: { id: article.id }, author: { id: user.id } },
     });
     if (!existingFavorite) {
       return new BaseResponse(
@@ -648,23 +495,24 @@ export class ArticlesService {
     }
 
     try {
-      const followingIds = await this.getFollowingUserIds(user);
       await this.favoriteRepository.remove(existingFavorite);
+
+      const followingIds = await this.getFollowingUserIds(user);
+      const { favoritesCountMap } = await this.getFavoriteInfo([article]);
 
       return new BaseResponse(
         await t(this.i18nService, 'lang.article_unfavorited_success'),
-        {
-          ...article,
-          author: article.author
-            ? new UserSerializer(
-                {
-                  ...article.author,
-                  following: followingIds.has(article.author.id),
-                },
-                { type: 'PROFILE' },
-              ).serialize()
-            : null,
-        },
+        new ArticleSerializer(
+          {
+            ...article,
+            favorited: false,
+            favoritesCount: favoritesCountMap.get(article.id) || 0,
+            following: article.author
+              ? followingIds.has(article.author.id)
+              : false,
+          },
+          { type: 'DETAIL' },
+        ).serialize(),
       );
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {

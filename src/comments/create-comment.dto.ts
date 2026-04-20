@@ -7,5 +7,5 @@ export class CreateCommentDto {
     description: 'The body of the comment',
   })
   @IsString()
-  body: string;
+  body!: string;
 }

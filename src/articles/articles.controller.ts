@@ -17,7 +17,6 @@ import { CurrentUser } from 'src/users/current-user.decorator';
 import { User } from 'src/users/users.entity';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
-import { CreateCommentDto } from './create-comment.dto';
 import { QueryArticlesDto } from './dto/query-articles.dto';
 import { QueryFeedDto } from './dto/query-feed.dto';
 
@@ -113,47 +112,6 @@ export class ArticlesController {
   })
   delete(@CurrentUser() user: User, @Param('slug') slug: string) {
     return this.articlesService.delete(user, slug);
-  }
-
-  @Get('articles/:slug/comments')
-  @ApiBearerAuth('JWT-auth')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Get comments for an article',
-    description: 'Returns comments for a specific article',
-  })
-  findComments(@CurrentUser() currentUser: User, @Param('slug') slug: string) {
-    return this.articlesService.findComments(slug, currentUser);
-  }
-
-  @Post('articles/:slug/comments')
-  @ApiBearerAuth('JWT-auth')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Create a comment for an article',
-    description: 'Creates a new comment for a specific article',
-  })
-  createComment(
-    @CurrentUser() user: User,
-    @Param('slug') slug: string,
-    @Body() body: CreateCommentDto,
-  ) {
-    return this.articlesService.createComment(slug, body, user);
-  }
-
-  @Delete('articles/:slug/comments/:id')
-  @ApiBearerAuth('JWT-auth')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Delete a comment',
-    description: 'Deletes a specific comment from an article',
-  })
-  deleteComment(
-    @CurrentUser() user: User,
-    @Param('slug') slug: string,
-    @Param('id') id: number,
-  ) {
-    return this.articlesService.deleteComment(slug, id, user);
   }
 
   @Post('articles/:slug/favorite')
