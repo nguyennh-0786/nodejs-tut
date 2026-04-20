@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -7,11 +6,15 @@ import {
   Param,
   Post,
   Put,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { ApiBearerAuth, ApiHeader, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiHeader,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { BaseResponse } from 'src/common/base.response';
@@ -22,6 +25,7 @@ import { User } from './users.entity';
 import { t } from 'src/shared/utils';
 import { I18nService } from 'nestjs-i18n';
 
+@ApiTags('Users')
 @Controller('api/')
 export class UsersController {
   constructor(

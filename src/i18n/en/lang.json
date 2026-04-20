@@ -17,5 +17,12 @@
     "unfollow_user_success": "User unfollowed successfully",
     "failed_to_unfollow_user": "Failed to unfollow user",
     "cannot_follow_yourself": "You cannot follow yourself",
-    "cannot_unfollow_yourself": "You cannot unfollow yourself"
+    "cannot_unfollow_yourself": "You cannot unfollow yourself",
+    "get_comments_success": "Comments retrieved successfully",
+    "add_comment_success": "Comment added successfully",
+    "delete_comment_success": "Comment deleted successfully",
+    "comment_not_found": "Comment not found",
+    "failed_to_add_comment": "Failed to add comment",
+    "failed_to_delete_comment": "Failed to delete comment",
+    "get_tags_success": "Tags retrieved successfully"
 }

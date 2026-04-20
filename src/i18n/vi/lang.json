@@ -17,5 +17,12 @@
     "unfollow_user_success": "Hủy theo dõi người dùng thành công",
     "failed_to_unfollow_user": "Hủy theo dõi người dùng thất bại",
     "cannot_follow_yourself": "Không thể theo dõi chính mình",
-    "cannot_unfollow_yourself": "Không thể hủy theo dõi chính mình"
+    "cannot_unfollow_yourself": "Không thể hủy theo dõi chính mình",
+    "get_comments_success": "Lấy bình luận thành công",
+    "add_comment_success": "Thêm bình luận thành công",
+    "delete_comment_success": "Xóa bình luận thành công",
+    "comment_not_found": "Không tìm thấy bình luận",
+    "failed_to_add_comment": "Thêm bình luận thất bại",
+    "failed_to_delete_comment": "Xóa bình luận thất bại",
+    "get_tags_success": "Lấy thẻ thành công"
 }
